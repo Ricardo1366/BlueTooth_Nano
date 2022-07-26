@@ -3,6 +3,7 @@
 void ProcesaComando();
 void MuestraPantalla();
 void MuestraDisplay();
+void dameTemperatura();
 
 enum tipoMensaje
 {
@@ -23,6 +24,8 @@ char mensajeAnterior = tipoMensaje::Ninguno;
 bool hayReloj;
 char cadenaFormateada[13];
 volatile bool mostrarPantalla = false;
+byte temperatura;
+byte tDecimal;
 
 RTC_DS1307 reloj;
 DateTime tiempo;
@@ -130,6 +133,7 @@ void MuestraDisplay()
     sprintf(cadenaFormateada, "%02u:%02u:%02u\r\n", tiempo.hour(), tiempo.minute(), tiempo.second());
     Muestra(&pantalla, cadenaFormateada);
     break;
+    
   case tipoMensaje::HoraDispositivo:
     /* code */
     tiempo = (unsigned long)1;
@@ -141,6 +145,7 @@ void MuestraDisplay()
     Serial1.print(cadenaFormateada);
     mensajeActual = mensajeAnterior;
     break;
+
   case tipoMensaje::FechaPantalla:
     /* code */
     tiempo = (unsigned long)1;
@@ -151,6 +156,7 @@ void MuestraDisplay()
     sprintf(cadenaFormateada, "%02u/%02u/%04u\r\n", tiempo.day(), tiempo.month(), tiempo.year());
     Muestra(&pantalla, cadenaFormateada);
     break;
+
   case tipoMensaje::FechaDispositivo:
     /* code */
     tiempo = (unsigned long)1;
@@ -162,36 +168,39 @@ void MuestraDisplay()
     Serial1.print(cadenaFormateada);
     mensajeActual = mensajeAnterior;
     break;
+
   case tipoMensaje::MensajePantalla:
     /* code */
     Muestra(&pantalla, mensajeRecibido);
     // Este mensaje no se actualiza. Solo se muestra una vez.
     mensajeActual = tipoMensaje::Ninguno;
     break;
+
   case tipoMensaje::TemperaturaDispositivo:
-    lecturaTemperatura.requestTemperatures();
-    celsius = lecturaTemperatura.getTempC(direccionTermometro);
-#if defined(DEBUG)
-    Serial.print(F("Lectura termómetro: "));
-    Serial.println(celsius);
-#endif
-    sprintf(cadenaFormateada, "%.2f", celsius);
+    dameTemperatura();
     Serial1.println(cadenaFormateada);
     mensajeActual = mensajeAnterior;
     break;
 
   case tipoMensaje::TemperaturaPantalla:
-    lecturaTemperatura.requestTemperatures();
-    celsius = lecturaTemperatura.getTempC(direccionTermometro);
-#if defined(DEBUG)
-    Serial.print(F("Lectura termómetro: "));
-    Serial.println(celsius);
-#endif
-    sprintf(cadenaFormateada, "%.2f ºC", celsius);
+    dameTemperatura();
     Muestra(&pantalla, cadenaFormateada);
     break;
 
   default:
     break;
   }
+}
+
+// Devuelve la temperatura en la variable cadenaFormateada
+void dameTemperatura(){
+    lecturaTemperatura.requestTemperatures();
+    celsius = lecturaTemperatura.getTempC(direccionTermometro);
+#if defined(DEBUG)
+    Serial.print(F("Lectura termómetro: "));
+    Serial.println(celsius);
+#endif
+    temperatura = celsius;
+    tDecimal = (celsius - (float)temperatura) * 100;
+    sprintf(cadenaFormateada, "%02u.%02u\x09 C\r\n", temperatura, tDecimal);
 }
